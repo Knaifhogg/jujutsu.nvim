@@ -1,0 +1,113 @@
+# jujutsu.nvim
+
+A Neovim plugin for working with [Jujutsu](https://github.com/martinvonz/jj) version control.
+
+## Features
+
+- **Interactive Log View**: Browse your jujutsu history with syntax highlighting and keybindings
+- **Change Operations**: Describe, edit, abandon, and create new changes
+- **Rebase Support**: Interactive rebasing with multiple source types (revision, subtree, branch) and destination types (onto, after, before)
+- **Squash Operations**: Squash single or multiple changes with combined descriptions
+- **Multi-Selection**: Select multiple changes for batch operations
+- **Difftastic Integration**: View diffs using [difftastic](https://github.com/Wilfred/difftastic)
+
+## Requirements
+
+- Neovim >= 0.10.0
+- [jj](https://github.com/martinvonz/jj) (Jujutsu VCS)
+- [difftastic.nvim](https://github.com/clabby/difftastic.nvim) (optional, for diff viewing)
+
+## Installation
+
+### Using vim.pack (Neovim 0.10+)
+
+```lua
+vim.pack.add({
+  src = "https://github.com/yourusername/jujutsu.nvim"
+})
+```
+
+The plugin will automatically set up the `:JJ` command when loaded.
+
+### Manual Setup (if needed)
+
+If you prefer to call setup manually:
+
+```lua
+local jj = require("jj")
+jj.setup()
+
+-- Optional: Add a keymap for quick access
+vim.keymap.set("n", "<leader>j", jj.log, { desc = "JJ Log" })
+```
+
+## Usage
+
+### Commands
+
+- `:JJ` or `:JJ log` - Open the interactive log view
+- `:JJ <command>` - Run any jj command (e.g., `:JJ status`, `:JJ diff`)
+
+### Log View Keybindings
+
+#### Navigation
+- `j` / `k` - Move down/up by 2 lines
+- `q` - Close window
+- `<CR>` - Open difftastic view for change under cursor
+
+#### Change Operations
+- `R` - Refresh log
+- `d` - Describe (edit description)
+- `n` - Create new change after current
+- `a` - Abandon change
+- `e` - Edit (check out) change
+- `r` - Rebase change
+- `s` - Squash change into parent
+- `S` - Squash change into selected target
+
+#### Multi-Selection
+- `m` - Toggle selection for current change
+- `c` - Clear all selections
+
+When multiple changes are selected, operations like rebase and squash will act on all selected changes.
+
+### Example Workflow
+
+1. Open the log: `:JJ log` or `<leader>j`
+2. Navigate to a change and press `<CR>` to view the diff
+3. Press `d` to edit the description
+4. Select multiple changes with `m` and rebase them with `r`
+5. Press `q` to close the log view
+
+## Development
+
+### Local Development Setup
+
+To work on this plugin locally while using it in your config:
+
+```lua
+-- In your init.lua, use a local path:
+vim.pack.add({ src = "~/code/jujutsu.nvim" })
+```
+
+Any changes you make to the plugin files will be picked up when you restart Neovim or reload your config.
+
+### Running from Source
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/jujutsu.nvim.git ~/code/jujutsu.nvim
+   ```
+
+2. Point your config to the local directory (see above)
+
+3. Make your changes and test by restarting Neovim
+
+## License
+
+MIT
+
+## Acknowledgments
+
+- Built for use with [Jujutsu](https://github.com/martinvonz/jj)
+- Inspired by fugitive.vim and other Git plugins
