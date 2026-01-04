@@ -65,7 +65,7 @@ local function get_selected_ids()
 end
 
 --------------------------------------------------------------------------------
--- Utilities
+-- Extracting changes from log output
 --------------------------------------------------------------------------------
 
 local function strip_ansi(str)
@@ -105,18 +105,6 @@ local function with_change_at_cursor(operation)
   else
     vim.notify("Could not find change ID on current line", vim.log.levels.WARN)
   end
-end
-
--- Cleanup jj window and buffer
-local function close_jj_window()
-  if M.jj_buffer and vim.api.nvim_buf_is_valid(M.jj_buffer) then
-    vim.api.nvim_buf_delete(M.jj_buffer, { force = true })
-  end
-  if M.jj_window and vim.api.nvim_win_is_valid(M.jj_window) then
-    vim.api.nvim_win_close(M.jj_window, true)
-  end
-  M.jj_buffer = nil
-  M.jj_window = nil
 end
 
 --------------------------------------------------------------------------------
@@ -434,13 +422,28 @@ end
 -- Log view and keymaps
 --------------------------------------------------------------------------------
 
-local function setup_log_keymaps(buf, original_window)
+local terminal_buffer = require("jujutsu-nvim.terminal_buffer")
+
+-- Cleanup jj window and buffer
+local function close_jj_window()
+  if M.jj_buffer and vim.api.nvim_buf_is_valid(M.jj_buffer) then
+    vim.api.nvim_buf_delete(M.jj_buffer, { force = true })
+  end
+  if M.jj_window and vim.api.nvim_win_is_valid(M.jj_window) then
+    vim.api.nvim_win_close(M.jj_window, true)
+  end
+  M.jj_buffer = nil
+  M.jj_window = nil
+end
+
+local function setup_log_keymaps(buf)
   local opts = { buffer = buf, silent = true }
 
   -- Helper to create keymap with description
   local function map(key, action, desc)
     vim.keymap.set("n", key, action, vim.tbl_extend("force", opts, { desc = "JJ: " .. desc }))
   end
+
 
   -- Navigation
   map("q", close_jj_window, "Close window")
@@ -450,9 +453,6 @@ local function setup_log_keymaps(buf, original_window)
   -- Open difftastic for change under cursor
   map("<CR>", function()
     with_change_at_cursor(function(change_id)
-      if original_window and vim.api.nvim_win_is_valid(original_window) then
-        vim.api.nvim_set_current_win(original_window)
-      end
       vim.cmd("DifftTab " .. change_id)
     end)
   end, "Open Difft for change")
@@ -480,44 +480,19 @@ local function setup_log_keymaps(buf, original_window)
   end, "Clear selections")
 end
 
---------------------------------------------------------------------------------
--- Terminal command execution
---------------------------------------------------------------------------------
-
-function M.run_command_in_terminal(args, title, setup_keymaps_fn)
+local function run_in_jj_window(args, title, setup_keymaps_fn)
   close_jj_window()
-
-  local cmd_args = { "jj", "--no-pager", "--color=always" }
-  vim.list_extend(cmd_args, args)
-
-  -- Build shell command
-  local cmd_str = table.concat(vim.tbl_map(vim.fn.shellescape, cmd_args), " ")
-  local shell_cmd = "sh -c " .. vim.fn.shellescape(cmd_str)
-
-  -- Save original window
-  local original_window = vim.api.nvim_get_current_win()
-
-  -- Create terminal buffer
-  vim.cmd("botright split term://" .. vim.fn.fnameescape(shell_cmd))
-
-  M.jj_buffer = vim.api.nvim_get_current_buf()
-  M.jj_window = vim.api.nvim_get_current_win()
-
-  pcall(vim.api.nvim_buf_set_name, M.jj_buffer, title or "[JJ]")
-  vim.api.nvim_win_set_height(M.jj_window, math.floor(vim.o.lines * 0.4))
-
-  if setup_keymaps_fn then
-    setup_keymaps_fn(M.jj_buffer, original_window)
-  end
-
-  -- Auto-cleanup on buffer wipeout
-  vim.api.nvim_create_autocmd("BufWipeout", {
-    buffer = M.jj_buffer,
-    once = true,
-    callback = function()
+  terminal_buffer.run_command_in_new_terminal_window(args, {
+    title = title,
+    on_ready = function(window, buffer)
+      M.jj_buffer = buffer
+      M.jj_window = window
+      setup_keymaps_fn(buffer, window)
+    end,
+    on_close = function()
       M.jj_window = nil
       M.jj_buffer = nil
-    end,
+    end
   })
 end
 
@@ -530,8 +505,7 @@ function M.log(args)
   args = args or {}
   local log_args = { "log" }
   vim.list_extend(log_args, args)
-
-  M.run_command_in_terminal(log_args, "JJ Log", setup_log_keymaps)
+  run_in_jj_window(log_args, "JJ Log", setup_log_keymaps)
 end
 
 -- Run any jj command interactively
@@ -545,7 +519,7 @@ function M.run(args_str)
 
   local args = vim.split(args_str, "%s+")
 
-  M.run_command_in_terminal(args, "JJ: " .. args_str, function(buf)
+  run_in_jj_window(args, "JJ: " .. args_str, function(buf)
     vim.keymap.set("n", "q", ":close<CR>", { buffer = buf, silent = true, desc = "JJ: Close window" })
   end)
 end
