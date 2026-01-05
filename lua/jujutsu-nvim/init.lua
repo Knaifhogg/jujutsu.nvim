@@ -378,6 +378,78 @@ local function bookmark_change(change_id)
   end)
 end
 
+local function bookmark_menu(change_id)
+  jj.get_bookmarks_for_change(change_id, function(bookmarks)
+    if #bookmarks == 0 then
+      vim.notify("No bookmarks on change " .. change_id, vim.log.levels.WARN)
+      return
+    end
+
+    local options = {
+      { key = 'd', label = 'Delete bookmark', value = 'delete' },
+      { key = 'r', label = 'Rename bookmark', value = 'rename' },
+    }
+
+    dialog_window.show_floating_options({
+      prompt = 'Bookmark operations:',
+      options = options,
+      on_select = function(option)
+        if option.value == 'delete' then
+          -- Select which bookmark to delete
+          vim.ui.select(bookmarks, {
+            prompt = "Delete bookmark:",
+            format_item = function(item) return item end
+          }, function(bookmark)
+            if not bookmark then
+              vim.notify("Delete cancelled", vim.log.levels.INFO)
+              return
+            end
+
+            dialog_window.confirm(
+              string.format("Delete bookmark '%s'?", bookmark),
+              function()
+                jj.delete_bookmark(bookmark, function()
+                  vim.notify("Deleted bookmark '" .. bookmark .. "'", vim.log.levels.INFO)
+                  M.log()
+                end)
+              end,
+              function()
+                vim.notify("Delete cancelled", vim.log.levels.INFO)
+              end
+            )
+          end)
+        elseif option.value == 'rename' then
+          -- Select which bookmark to rename
+          vim.ui.select(bookmarks, {
+            prompt = "Rename bookmark:",
+            format_item = function(item) return item end
+          }, function(bookmark)
+            if not bookmark then
+              vim.notify("Rename cancelled", vim.log.levels.INFO)
+              return
+            end
+
+            vim.ui.input({ prompt = "New name for '" .. bookmark .. "': " }, function(new_name)
+              if not new_name or new_name == "" then
+                vim.notify("Rename cancelled", vim.log.levels.INFO)
+                return
+              end
+
+              jj.rename_bookmark(bookmark, new_name, function()
+                vim.notify("Renamed bookmark '" .. bookmark .. "' to '" .. new_name .. "'", vim.log.levels.INFO)
+                M.log()
+              end)
+            end)
+          end)
+        end
+      end,
+      on_cancel = function()
+        vim.notify("Bookmark operation cancelled", vim.log.levels.INFO)
+      end
+    })
+  end)
+end
+
 local function push_bookmarks(opts)
   local selected_ids = get_selected_ids()
   if #selected_ids > 0 then
@@ -678,6 +750,7 @@ local function setup_log_keymaps(buf)
   map("u", undo, "Squash change")
   map("S", function() with_change_at_cursor(squash_to_target) end, "Squash into target")
   map("b", function() with_change_at_cursor(bookmark_change) end, "Bookmark change")
+  map("B", function() with_change_at_cursor(bookmark_menu) end, "Bookmark menu")
   map("p", function() push_bookmarks({}) end, "Push change")
   map("P", function() push_bookmarks({ create = true }) end, "Push change (create on remote)")
 

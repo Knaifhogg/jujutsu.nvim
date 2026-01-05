@@ -160,6 +160,20 @@ M.push_bookmarks_for_changes = function(revset, opts, on_success)
   run_jj_command(cmd, on_success)
 end
 
+M.delete_bookmark = function(bookmark_name, on_success)
+  run_jj_command(
+    { "jj", "bookmark", "delete", bookmark_name },
+    on_success
+  )
+end
+
+M.rename_bookmark = function(old_name, new_name, on_success)
+  run_jj_command(
+    { "jj", "bookmark", "rename", old_name, new_name },
+    on_success
+  )
+end
+
 --------------------------------------------------------------------------------
 -- Squash
 
