@@ -67,6 +67,34 @@ M.get_changes_by_ids = function(change_ids, callback)
 end
 
 --------------------------------------------------------------------------------
+-- Log output parsing
+
+local function strip_ansi(str)
+  return str:gsub("\27%[[0-9;]*m", "")
+end
+
+-- Try to extract change ID from jj log output
+-- Format: "◉  mrtwmypl yann.vanhalewyn@gmail.com 2026-01-03 22:53:01 02a96588"
+M.extract_change_id =  function(line)
+  local clean_line = strip_ansi(line)
+
+  -- Pattern 1: Extract the first alphanumeric string after box-drawing/special chars
+  local change_id = clean_line:match "^[^%w]*(%w+)%s+%S+@"
+
+  -- Pattern 2: If that fails, try to get 8-char hex at the end of the line
+  if not change_id then
+    change_id = clean_line:match "(%x%x%x%x%x%x%x%x)%s*$"
+  end
+
+  -- Pattern 3: For lines with branch names, extract the first word
+  if not change_id then
+    change_id = clean_line:match "[│├└─╮╯]*%s*[◉○◆@]+%s+(%w+)"
+  end
+
+  return change_id
+end
+
+--------------------------------------------------------------------------------
 -- Basic Operations
 
 M.new_change = function(revset, on_success)
@@ -278,6 +306,5 @@ M.execute_rebase = function(source_ids, source_type, dest_id, dest_type, on_succ
     vim.notify("Rebase failed: " .. (result.stderr or ""), vim.log.levels.ERROR)
   end)
 end
-
 
 return M

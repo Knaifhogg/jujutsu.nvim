@@ -97,10 +97,6 @@ local function get_diff_viewer()
   end
 end
 
-function M.setup(user_config)
-  M.config = vim.tbl_deep_extend("force", default_config, user_config or {})
-end
-
 --------------------------------------------------------------------------------
 -- Multi Selection
 --------------------------------------------------------------------------------
@@ -141,37 +137,11 @@ end
 -- Extracting changes from log output
 --------------------------------------------------------------------------------
 
-local function strip_ansi(str)
-  return str:gsub("\27%[[0-9;]*m", "")
-end
-
-local function extract_change_id(line)
-  local clean_line = strip_ansi(line)
-
-  -- Try to extract change ID from jj log output
-  -- Format: "◉  mrtwmypl yann.vanhalewyn@gmail.com 2026-01-03 22:53:01 02a96588"
-
-  -- Pattern 1: Extract the first alphanumeric string after box-drawing/special chars
-  local change_id = clean_line:match "^[^%w]*(%w+)%s+%S+@"
-
-  -- Pattern 2: If that fails, try to get 8-char hex at the end of the line
-  if not change_id then
-    change_id = clean_line:match "(%x%x%x%x%x%x%x%x)%s*$"
-  end
-
-  -- Pattern 3: For lines with branch names, extract the first word
-  if not change_id then
-    change_id = clean_line:match "[│├└─╮╯]*%s*[◉○◆@]+%s+(%w+)"
-  end
-
-  return change_id
-end
-
 -- Extracts the change ID of the change at cursor, and when valid calls the
 -- operation with it.
 local function with_change_at_cursor(operation)
   local line = vim.api.nvim_get_current_line()
-  local change_id = extract_change_id(line)
+  local change_id = jj.extract_change_id(line)
 
   if change_id and #change_id >= 4 then
     operation(change_id)
@@ -729,7 +699,7 @@ local function jump_to_next_change()
 
   for line_num = current_line + 1, total_lines do
     local line = vim.api.nvim_buf_get_lines(M.jj_buffer, line_num - 1, line_num, false)[1]
-    if line and extract_change_id(line) then
+    if line and jj.extract_change_id(line) then
       vim.api.nvim_win_set_cursor(0, { line_num, 0 })
       return
     end
@@ -742,7 +712,7 @@ local function jump_to_prev_change()
 
   for line_num = current_line - 1, 1, -1 do
     local line = vim.api.nvim_buf_get_lines(M.jj_buffer, line_num - 1, line_num, false)[1]
-    if line and extract_change_id(line) then
+    if line and jj.extract_change_id(line) then
       vim.api.nvim_win_set_cursor(0, { line_num, 0 })
       return
     end
@@ -756,7 +726,7 @@ local function update_selection_display()
   -- Add visual indicators for each selected change
   local lines = vim.api.nvim_buf_get_lines(M.jj_buffer, 0, -1, false)
   for i, line in ipairs(lines) do
-    local change_id = extract_change_id(line)
+    local change_id = jj.extract_change_id(line)
     if change_id and M.selected_changes[change_id] then
       -- Add checkmark at the start of the line
       vim.api.nvim_buf_set_extmark(M.jj_buffer, ns_id, i - 1, 0, {
@@ -778,7 +748,7 @@ end
 -- Toggle selection on current line
 local function toggle_selection_at_cursor()
   local line = vim.api.nvim_get_current_line()
-  local change_id = extract_change_id(line)
+  local change_id = jj.extract_change_id(line)
 
   if change_id then
     toggle_selection(change_id)
@@ -868,6 +838,10 @@ local actions = {
     vim.notify("Cleared all selections", vim.log.levels.INFO)
   end,
 }
+
+function M.setup(user_config)
+  M.config = vim.tbl_deep_extend("force", default_config, user_config or {})
+end
 
 -- Open jj log
 function M.log(args)
