@@ -312,7 +312,7 @@ local function abandon_changes()
       dialog_window.confirm(
         string.format("Abandon change %s?", change_id:sub(1, 8)),
         function()
-          jj.abandon_changes({ change_id }, function()
+          jj.abandon_changes(change_id, function()
             vim.notify("Abandoned change " .. change_id, vim.log.levels.INFO)
             M.log()
           end)

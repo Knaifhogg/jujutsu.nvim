@@ -1,7 +1,7 @@
 local M = {}
 
-local function run_jj_command(args, on_success, on_error)
-  local result = vim.system(args, { text = true }):wait()
+local function run_jj_command(cmd, on_success, on_error)
+  local result = vim.system(cmd, { text = true }):wait()
 
   if result.code == 0 then
     if on_success then on_success(result) end
