@@ -68,25 +68,25 @@ Or to use diffview.nvim:
 
 Select multiple changes and view their combined diff to see all changes at once. This is useful when wanting to get a sense of what's contained in a few changes before squashing / rebasing them.
 
-<!-- VIDEO PLACEHOLDER: Multi-select diffing demo -->
+https://github.com/user-attachments/assets/e009643f-0794-43c0-91b2-9795cec86b02
 
 #### Rebase with Source and Destination Type Selection
 
 Interactively rebase changes with full control over the source type (revision, subtree, or branch) and destination type (onto, after, or before). This gives you precise control over how changes are moved in your history.
 
-<!-- VIDEO PLACEHOLDER: Rebase with source and destination type selection demo -->
+https://github.com/user-attachments/assets/278bd063-8558-4df9-aebd-d25431f8ca84
 
 #### Squash and Multi-select Flow
 
 Squash multiple changes together, with their descriptions automatically combined. Select several changes and squash them into a target, or squash a single change into its parent.
 
-<!-- VIDEO PLACEHOLDER: Squash and multi-select flow demo -->
+https://github.com/user-attachments/assets/61837b2a-3fdf-49a3-b457-5310eab1faaf
 
 #### Bookmark management
 
 Manage your bookmarks, create, set, delete, rename and push them to the remote
 
-<!-- VIDEO PLACEHOLDER: Squash and multi-select flow demo -->
+https://github.com/user-attachments/assets/8cbf2ad0-86ac-435a-ad1a-38c245c3bdff
 
 ### Commands
 
