@@ -680,6 +680,33 @@ end
 -- Selection UI
 --------------------------------------------------------------------------------
 
+-- Navigate to next line with a change ID
+local function jump_to_next_change()
+  local current_line = vim.api.nvim_win_get_cursor(0)[1]
+  local total_lines = vim.api.nvim_buf_line_count(M.jj_buffer)
+
+  for line_num = current_line + 1, total_lines do
+    local line = vim.api.nvim_buf_get_lines(M.jj_buffer, line_num - 1, line_num, false)[1]
+    if line and extract_change_id(line) then
+      vim.api.nvim_win_set_cursor(0, { line_num, 0 })
+      return
+    end
+  end
+end
+
+-- Navigate to previous line with a change ID
+local function jump_to_prev_change()
+  local current_line = vim.api.nvim_win_get_cursor(0)[1]
+
+  for line_num = current_line - 1, 1, -1 do
+    local line = vim.api.nvim_buf_get_lines(M.jj_buffer, line_num - 1, line_num, false)[1]
+    if line and extract_change_id(line) then
+      vim.api.nvim_win_set_cursor(0, { line_num, 0 })
+      return
+    end
+  end
+end
+
 -- Update visual indicators for selections
 local function update_selection_display()
   vim.api.nvim_buf_clear_namespace(M.jj_buffer, ns_id, 0, -1)
@@ -714,6 +741,7 @@ local function toggle_selection_at_cursor()
   if change_id then
     toggle_selection(change_id)
     update_selection_display()
+    jump_to_next_change()
   else
     vim.notify("Could not find change ID on current line", vim.log.levels.WARN)
   end
@@ -746,33 +774,6 @@ local function setup_log_keymaps(buf)
       desc = "JJ: " .. desc,
       nowait = true
     }))
-  end
-
-  -- Navigate to next line with a change ID
-  local function jump_to_next_change()
-    local current_line = vim.api.nvim_win_get_cursor(0)[1]
-    local total_lines = vim.api.nvim_buf_line_count(buf)
-
-    for line_num = current_line + 1, total_lines do
-      local line = vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1]
-      if line and extract_change_id(line) then
-        vim.api.nvim_win_set_cursor(0, { line_num, 0 })
-        return
-      end
-    end
-  end
-
-  -- Navigate to previous line with a change ID
-  local function jump_to_prev_change()
-    local current_line = vim.api.nvim_win_get_cursor(0)[1]
-
-    for line_num = current_line - 1, 1, -1 do
-      local line = vim.api.nvim_buf_get_lines(buf, line_num - 1, line_num, false)[1]
-      if line and extract_change_id(line) then
-        vim.api.nvim_win_set_cursor(0, { line_num, 0 })
-        return
-      end
-    end
   end
 
   -- Navigation
