@@ -291,18 +291,39 @@ local function describe(change_id)
   end)
 end
 
-local function abandon_change(change_id)
-  dialog_window.confirm(
-    string.format("Abandon change %s?", change_id:sub(1, 8)),
-    function()
-      jj.abandon_change(change_id, function()
-        vim.notify("Abandoned change " .. change_id, vim.log.levels.INFO)
-        M.log()
+local function abandon_changes()
+  local selected_ids = get_selected_ids()
+  if #selected_ids > 0 then
+    dialog_window.confirm(
+      string.format(
+        "Abandon the following changes?\n\n%s",
+        table.concat(vim.tbl_map(function(id) return "- " .. id end, selected_ids), "\n")
+      ),
+      function()
+        jj.abandon_changes(jj.make_revset(selected_ids), function()
+          vim.notify("Abandoned changes " .. table.concat(selected_ids, ", "), vim.log.levels.INFO)
+          clear_selections()
+          M.log()
+        end)
+      end,
+      function()
+        vim.notify("Abandon cancelled", vim.log.levels.INFO)
       end)
-    end,
-    function()
-      vim.notify("Abandon cancelled", vim.log.levels.INFO)
-    end)
+  else
+    with_change_at_cursor(function(change_id)
+      dialog_window.confirm(
+        string.format("Abandon change %s?", change_id:sub(1, 8)),
+        function()
+          jj.abandon_changes({ change_id }, function()
+            vim.notify("Abandoned change " .. change_id, vim.log.levels.INFO)
+            M.log()
+          end)
+        end,
+        function()
+          vim.notify("Abandon cancelled", vim.log.levels.INFO)
+        end)
+      end)
+    end
 end
 
 local function edit_change(change_id)
@@ -622,7 +643,7 @@ local function setup_log_keymaps(buf)
   map("R", M.log, "Refresh log")
   map("d", function() with_change_at_cursor(describe) end, "Describe change")
   map("n", new_change, "New change after this")
-  map("a", function() with_change_at_cursor(abandon_change) end, "Abandon change")
+  map("a", abandon_changes, "Abandon change")
   map("e", function() with_change_at_cursor(edit_change) end, "Edit (check out) change")
   map("r", rebase_change, "Rebase change")
   map("s", squash_change, "Squash change")

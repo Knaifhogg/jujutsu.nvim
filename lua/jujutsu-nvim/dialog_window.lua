@@ -14,7 +14,14 @@ M.show_floating_options = function(opts)
   local options = opts.options or {}
 
   -- Build content lines with padding and key highlighting
-  local lines = { "", "  " .. prompt, "" }
+  local lines = { "" }
+
+  -- Handle multi-line prompts by splitting and padding each line
+  for line in vim.gsplit(prompt, "\n", { plain = true, trimempty = false }) do
+    table.insert(lines, "  " .. line)
+  end
+
+  table.insert(lines, "")
   local key_highlights = {}  -- Track where to highlight keys
   for _, option in ipairs(options) do
     local line = string.format("    %s  %s", option.key:upper(), option.label)

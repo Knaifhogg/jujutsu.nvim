@@ -73,8 +73,8 @@ M.new_change = function(revset, on_success)
   run_jj_command({ "jj", "new", revset }, on_success)
 end
 
-M.abandon_change = function(change_id, on_success)
-  run_jj_command({ "jj", "abandon", change_id }, on_success)
+M.abandon_changes = function(revset, on_success)
+  run_jj_command({ "jj", "abandon", revset }, on_success)
 end
 
 M.edit_change = function(change_id, on_success)
