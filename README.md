@@ -2,7 +2,7 @@
 
 A Neovim plugin for working with [Jujutsu](https://github.com/martinvonz/jj) version control. This plugin is aimed to cover the most common use cases and focus mostly on smooth and fast UX.
 
-<img width="960" height="676" alt="Screenshot 2026-01-05 at 03 21 43" src="https://github.com/user-attachments/assets/8ff1f6b2-db8a-42ca-97cf-5febba047496" />
+![jujutsu-nivm-log-trim](https://github.com/user-attachments/assets/c868c4bc-e4dc-450f-ab8e-60b22e0e915c)
 
 ## Features
 
