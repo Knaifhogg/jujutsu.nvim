@@ -139,7 +139,8 @@ M.get_bookmarks_for_change = function(change_id, callback)
       -- Parse space-separated bookmark names
       for bookmark in output:gmatch("%S+") do
         if bookmark ~= "" then
-          table.insert(bookmarks, bookmark)
+          local cleaned = string.gsub(bookmark, "*$", "")
+          table.insert(bookmarks, cleaned)
         end
       end
 
