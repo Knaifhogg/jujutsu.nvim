@@ -29,7 +29,7 @@ A Neovim plugin for working with [Jujutsu](https://github.com/martinvonz/jj) ver
 
 ## Installation
 
-### Using vim.pack (Neovim 0.10+)
+### Using vim.pack (Neovim 0.12+)
 
 ```lua
 vim.pack.add({

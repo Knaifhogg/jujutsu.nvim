@@ -213,37 +213,43 @@ end
 
 local function abandon_changes()
   local selected_ids = get_selected_ids()
-  if #selected_ids > 0 then
+
+  local function abandon(changes, prompt, success_msg)
     dialog_window.confirm(
-      string.format(
-        "Abandon the following changes?\n\n%s",
-        table.concat(vim.tbl_map(function(id) return "- " .. id end, selected_ids), "\n")
-      ),
+      prompt,
       function()
-        jj.abandon_changes(jj.make_revset(selected_ids), function()
-          vim.notify("Abandoned changes " .. table.concat(selected_ids, ", "), vim.log.levels.INFO)
+        print("revset", vim.inspect(changes))
+        jj.abandon_changes(jj.make_revset(changes), function()
+          vim.notify(success_msg)
           clear_selections()
           M.log()
         end)
       end,
       function()
         vim.notify("Abandon cancelled", vim.log.levels.INFO)
-      end)
+      end
+    )
+  end
+
+  if #selected_ids > 0 then
+    local prompt = string.format(
+      "Abandon the following changes?\n\n%s",
+      table.concat(
+        vim.tbl_map(function(id) return "- " .. id end, selected_ids),
+        "\n"
+      )
+    )
+    abandon(selected_ids, prompt, string.format("Abandoned %d changes", #selected_ids)
+  )
   else
     M.with_change_at_cursor(function(change_id)
-      dialog_window.confirm(
+      abandon(
+        { change_id },
         string.format("Abandon change %s?", change_id:sub(1, 8)),
-        function()
-          jj.abandon_changes(change_id, function()
-            vim.notify("Abandoned change " .. change_id, vim.log.levels.INFO)
-            M.log()
-          end)
-        end,
-        function()
-          vim.notify("Abandon cancelled", vim.log.levels.INFO)
-        end)
-      end)
-    end
+        string.format("Abandoned change %s", change_id:sub(1, 8))
+      )
+    end)
+  end
 end
 
 local function edit_change(change_id)
@@ -414,8 +420,9 @@ local function push_bookmarks(opts)
         function()
           vim.notify("Pushed change " .. change_id, vim.log.levels.INFO)
           M.log()
-        end)
-      end)
+        end
+      )
+    end)
   end
 end
 
