@@ -761,6 +761,17 @@ local function close_jj_window()
   if M.jj_window and vim.api.nvim_win_is_valid(M.jj_window) then
     vim.api.nvim_win_close(M.jj_window, true)
   end
+
+  -- Clean up any orphaned JJ terminal buffers
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf) then
+      local name = vim.api.nvim_buf_get_name(buf)
+      if name:match("term://.*jj.*%-%-no%-pager") or name:match("%[JJ") or name:match("JJ Log") or name:match("JJ:") then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end
+  end
+
   M.jj_buffer = nil
   M.jj_window = nil
 end

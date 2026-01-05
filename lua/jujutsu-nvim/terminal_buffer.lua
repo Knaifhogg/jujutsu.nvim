@@ -14,6 +14,10 @@ M.run_command_in_new_terminal_window = function (args, opts)
   local window = vim.api.nvim_get_current_win()
   local buffer = vim.api.nvim_get_current_buf()
 
+  -- Set buffer options to ensure it's properly cleaned up
+  vim.bo[buffer].bufhidden = 'wipe'  -- Auto-wipe when hidden
+  vim.bo[buffer].buflisted = false   -- Don't show in buffer lists
+
   pcall(vim.api.nvim_buf_set_name, buffer, opts.title or "[JJ]")
   vim.api.nvim_win_set_height(window, math.floor(vim.o.lines * 0.4))
 
