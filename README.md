@@ -62,6 +62,26 @@ Or to use diffview.nvim:
 
 ## Usage
 
+### Demos
+
+#### Multi-select Diffing
+
+Select multiple changes and view their combined diff to see all changes at once. This is useful when wanting to get a sense of what's contained in a few changes before squashing / rebasing them.
+
+<!-- VIDEO PLACEHOLDER: Multi-select diffing demo -->
+
+#### Rebase with Source and Destination Type Selection
+
+Interactively rebase changes with full control over the source type (revision, subtree, or branch) and destination type (onto, after, or before). This gives you precise control over how changes are moved in your history.
+
+<!-- VIDEO PLACEHOLDER: Rebase with source and destination type selection demo -->
+
+#### Squash and Multi-select Flow
+
+Squash multiple changes together, with their descriptions automatically combined. Select several changes and squash them into a target, or squash a single change into its parent.
+
+<!-- VIDEO PLACEHOLDER: Squash and multi-select flow demo -->
+
 ### Commands
 
 - `:JJ` or `:JJ log` - Open the interactive log view
