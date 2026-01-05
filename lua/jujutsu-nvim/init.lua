@@ -639,7 +639,7 @@ function M.run(args_str)
 
   local args = vim.split(args_str, "%s+")
 
-  run_in_jj_window(args, "JJ: " .. args_str, function(buf)
+  run_in_jj_window(args, "JJ: " .. args_str:subs(1,6), function(buf)
     vim.keymap.set("n", "q", ":close<CR>", { buffer = buf, silent = true, desc = "JJ: Close window" })
   end)
 end
