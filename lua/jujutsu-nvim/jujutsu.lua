@@ -34,7 +34,8 @@ M.get_changes = function(revset, callback)
       for change_block in output:gmatch("(.-)\n%-%-%-END%-CHANGE%-%-%-\n") do
         if change_block ~= "" then
           -- Split on first semicolon only (to handle multiline descriptions)
-          local change_id, commit_sha, description = change_block:match("^([^;]*);(.*);(.*)$")
+          -- local change_id, commit_sha, description = change_block:match("^([^;]*);(.*);(.*)$")
+          local change_id, commit_sha, description = unpack(vim.split(change_block, ";"))
           if change_id then
             -- Trim the change_id and preserve description as-is (including newlines)
             change_id = change_id:gsub("^%s*(.-)%s*$", "%1")
@@ -88,6 +89,44 @@ end
 
 M.undo = function(op_id, on_success)
   run_jj_command({ "jj", "undo", op_id }, on_success)
+end
+
+M.get_bookmarks = function(callback)
+  run_jj_command(
+    { "jj", "bookmark", "list", "-T", "name ++ '\n'"},
+    function(result)
+      local output = result.stdout or ""
+      local bookmarks = {}
+      -- Parse bookmark list output
+      -- Format: "bookmark_name: change_id"
+      for _, bookmark_name in ipairs(vim.split(output, "\n")) do
+        if bookmark_name then
+          -- bookmark = bookmark_name:gsub("^%s*(.-)%s*$", "%1") -- trim
+          table.insert(bookmarks, bookmark_name)
+        end
+      end
+
+      callback(bookmarks)
+    end,
+    function(result)
+      vim.notify("Failed to get bookmarks: " .. (result.stderr or ""), vim.log.levels.ERROR)
+      callback({})
+    end
+  )
+end
+
+M.create_bookmark = function(bookmark_name, change_id, on_success)
+  run_jj_command(
+    { "jj", "bookmark", "create", bookmark_name, "-r", change_id },
+    on_success
+  )
+end
+
+M.set_bookmark = function(bookmark_name, change_id, on_success)
+  run_jj_command(
+    { "jj", "bookmark", "set", bookmark_name, "-r", change_id },
+    on_success
+  )
 end
 
 --------------------------------------------------------------------------------

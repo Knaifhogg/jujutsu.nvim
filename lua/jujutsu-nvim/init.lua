@@ -319,6 +319,44 @@ local function undo()
   end)
 end
 
+local function bookmark_change(change_id)
+  jj.get_bookmarks(function(bookmarks)
+    -- Add "Create new bookmark" option at the beginning
+    local new_bookmark_name = "[Create new bookmark]"
+    local items = { new_bookmark_name }
+    vim.list_extend(items, bookmarks)
+
+    vim.ui.select(items, {
+      prompt = "Select bookmark:",
+      format_item = function(item) return item end
+    }, function(choice)
+      if not choice then
+        vim.notify("Bookmark cancelled", vim.log.levels.INFO)
+        return
+      end
+
+      if choice == new_bookmark_name then
+        vim.ui.input({ prompt = "New bookmark name: " }, function(bookmark_name)
+          if not bookmark_name or bookmark_name == "" then
+            vim.notify("Bookmark cancelled", vim.log.levels.INFO)
+            return
+          end
+
+          jj.create_bookmark(bookmark_name, change_id, function()
+            vim.notify("Created bookmark '" .. bookmark_name .. "' at " .. change_id, vim.log.levels.INFO)
+            M.log()
+          end)
+        end)
+      else
+        jj.set_bookmark(choice, change_id, function()
+          vim.notify("Moved bookmark '" .. choice .. "' to " .. change_id, vim.log.levels.INFO)
+          M.log()
+        end)
+      end
+    end)
+  end)
+end
+
 --------------------------------------------------------------------------------
 -- Rebase operations
 --------------------------------------------------------------------------------
@@ -590,6 +628,7 @@ local function setup_log_keymaps(buf)
   map("s", squash_change, "Squash change")
   map("u", undo, "Squash change")
   map("S", function() with_change_at_cursor(squash_to_target) end, "Squash into target")
+  map("b", function() with_change_at_cursor(bookmark_change) end, "Bookmark change")
 
   -- Multi-select
   map("m", toggle_selection_at_cursor, "Toggle selection")
