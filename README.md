@@ -146,7 +146,7 @@ Now various operations can be performed on the selected changes:
 | `r` | Rebase |  Rebases all selected changes onto change at cursor |
 | `s` | Squash | Squashes all selected changes into change at cursor |
 | `<CR>` | Diff | Opens diff for all selected changes (only if there are no gaps) |
-| `p` | Push | Pushes bookamrks for all selected changes |
+| `p` | Push | Pushes bookmarks for all selected changes |
 | `P` | Push create | Pushes bookmarks all selected changes (with `--allow-new`) |
 
 **Note**: Operations that don't support multi-selection (like `d` for describe, `e` for edit) always operate on the change under the cursor, ignoring selections.

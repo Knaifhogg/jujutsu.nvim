@@ -16,6 +16,9 @@ local M = {}
 M.jj_window = nil
 M.jj_buffer = nil
 
+-- Custom revset for log view
+M.custom_revset = nil
+
 -- Highlight group for jj log change lines
 vim.api.nvim_set_hl(0, "JJLogChange", { link = "CursorLine" })
 
@@ -242,6 +245,19 @@ local function open_editor_buffer(opts)
   end
 end
 
+local function prompt_and_set_revset()
+  vim.ui.input({
+    prompt = "Custom revset (empty to reset): ",
+    default = M.custom_revset or ""
+  }, function(input)
+    if input == nil then
+      vim.notify("Revset input cancelled", vim.log.levels.INFO)
+      return
+    end
+    M.set_custom_revset(input)
+  end)
+end
+
 --------------------------------------------------------------------------------
 -- Basic Operations
 --------------------------------------------------------------------------------
@@ -337,6 +353,10 @@ local function undo()
     M.log()
   end)
 end
+
+--------------------------------------------------------------------------------
+-- Bookmarks
+--------------------------------------------------------------------------------
 
 local function bookmark_change(change_id)
   jj.get_bookmarks(function(bookmarks)
@@ -755,18 +775,22 @@ local terminal_buffer = require("jujutsu-nvim.terminal_buffer")
 
 -- Cleanup jj window and buffer
 local function close_jj_window()
-  if M.jj_buffer and vim.api.nvim_buf_is_valid(M.jj_buffer) then
-    vim.api.nvim_buf_delete(M.jj_buffer, { force = true })
-  end
+  -- Close window first, which will trigger buffer cleanup if bufhidden=wipe
   if M.jj_window and vim.api.nvim_win_is_valid(M.jj_window) then
     vim.api.nvim_win_close(M.jj_window, true)
   end
+  -- Force delete buffer if it still exists (ensures terminal buffer is wiped)
+  if M.jj_buffer and vim.api.nvim_buf_is_valid(M.jj_buffer) then
+    vim.api.nvim_buf_delete(M.jj_buffer, { force = true })
+  end
 
   -- Clean up any orphaned JJ terminal buffers
+  -- This catches buffers that weren't properly cleaned up in previous sessions
   for _, buf in ipairs(vim.api.nvim_list_bufs()) do
     if vim.api.nvim_buf_is_valid(buf) then
       local name = vim.api.nvim_buf_get_name(buf)
-      if name:match("term://.*jj.*%-%-no%-pager") or name:match("%[JJ") or name:match("JJ Log") or name:match("JJ:") then
+      -- Match both term:// buffers and renamed [JJ] buffers
+      if name:match("term://.*jj%s+%-%-no%-pager") or name:match("%[JJ") or name:match("JJ Log") or name:match("JJ:") then
         pcall(vim.api.nvim_buf_delete, buf, { force = true })
       end
     end
@@ -801,7 +825,7 @@ local function setup_log_keymaps(buf)
   map("n", new_change, "New change after this")
   map("a", abandon_changes, "Abandon change")
   map("e", function() with_change_at_cursor(edit_change) end, "Edit (check out) change")
-  map("r", rebase_change, "Rebase change")
+  map("r", prompt_and_set_revset, "Set custom revset")
   map("s", squash_change, "Squash change")
   map("u", undo, "Squash change")
   map("S", function() with_change_at_cursor(squash_to_target) end, "Squash into target")
@@ -843,6 +867,13 @@ end
 function M.log(args)
   args = args or {}
   local log_args = { "log" }
+
+  -- Add custom revset if set
+  if M.custom_revset then
+    table.insert(log_args, "-r")
+    table.insert(log_args, M.custom_revset)
+  end
+
   vim.list_extend(log_args, args)
   run_in_jj_window(log_args, "JJ Log", setup_log_keymaps)
 end
@@ -861,6 +892,17 @@ function M.run(args_str)
   run_in_jj_window(args, "JJ: " .. args_str, function(buf)
     vim.keymap.set("n", "q", ":close<CR>", { buffer = buf, silent = true, desc = "JJ: Close window" })
   end)
+end
+
+M.set_custom_revset = function(revset)
+  if u.is_blank(revset) then
+    M.custom_revset = nil
+    vim.notify("Revset reset to default", vim.log.levels.INFO)
+  else
+    M.custom_revset = revset
+    vim.notify("Revset set to: " .. revset, vim.log.levels.INFO)
+  end
+  M.log()
 end
 
 return M
