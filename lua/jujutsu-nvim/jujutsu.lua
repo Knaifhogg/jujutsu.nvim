@@ -124,9 +124,40 @@ end
 
 M.set_bookmark = function(bookmark_name, change_id, on_success)
   run_jj_command(
-    { "jj", "bookmark", "set", bookmark_name, "-r", change_id },
+    { "jj", "bookmark", "set", bookmark_name, "-r", change_id, "--allow-backwards" },
     on_success
   )
+end
+
+M.get_bookmarks_for_change = function(change_id, callback)
+  run_jj_command(
+    { "jj", "log", "--no-graph", "-r", change_id, "-T", "bookmarks ++ '\n'" },
+    function(result)
+      local output = result.stdout or ""
+      local bookmarks = {}
+
+      -- Parse space-separated bookmark names
+      for bookmark in output:gmatch("%S+") do
+        if bookmark ~= "" then
+          table.insert(bookmarks, bookmark)
+        end
+      end
+
+      callback(bookmarks)
+    end,
+    function(result)
+      vim.notify("Failed to get bookmarks for change: " .. (result.stderr or ""), vim.log.levels.ERROR)
+      callback({})
+    end
+  )
+end
+
+M.push_bookmarks_for_changes = function(revset, opts, on_success)
+  local cmd = { "jj", "git", "push", "-r", revset }
+  if opts.create then
+    table.insert(cmd, "--allow-new")
+  end
+  run_jj_command(cmd, on_success)
 end
 
 --------------------------------------------------------------------------------

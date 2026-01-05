@@ -378,6 +378,34 @@ local function bookmark_change(change_id)
   end)
 end
 
+local function push_bookmarks(opts)
+  local selected_ids = get_selected_ids()
+  if #selected_ids > 0 then
+    jj.push_bookmarks_for_changes(
+      jj.make_revset(selected_ids),
+      { create = opts.create },
+      function()
+        vim.notify(
+          string.format("Pushed bookmarks for %s",
+          table.concat(selected_ids, ", ")
+        ),
+        vim.log.levels.INFO
+      )
+      M.log()
+    end)
+  else
+    with_change_at_cursor(function(change_id)
+      jj.push_bookmarks_for_changes(
+        change_id,
+        { create = opts.create },
+        function()
+          vim.notify("Pushed change " .. change_id, vim.log.levels.INFO)
+          M.log()
+        end)
+      end)
+  end
+end
+
 --------------------------------------------------------------------------------
 -- Rebase operations
 --------------------------------------------------------------------------------
@@ -650,6 +678,8 @@ local function setup_log_keymaps(buf)
   map("u", undo, "Squash change")
   map("S", function() with_change_at_cursor(squash_to_target) end, "Squash into target")
   map("b", function() with_change_at_cursor(bookmark_change) end, "Bookmark change")
+  map("p", function() push_bookmarks({}) end, "Push change")
+  map("P", function() push_bookmarks({ create = true }) end, "Push change (create on remote)")
 
   -- Multi-select
   map("m", toggle_selection_at_cursor, "Toggle selection")
