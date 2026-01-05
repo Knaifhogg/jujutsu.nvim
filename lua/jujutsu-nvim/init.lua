@@ -7,6 +7,7 @@
 --   :JJ log           - Open interactive log view
 --   :JJ <any command> - Run any jj command
 
+local capture_buffer = require("jujutsu-nvim.capture_buffer")
 local jj = require("jujutsu-nvim.jujutsu")
 local u = require("jujutsu-nvim.utils")
 
@@ -150,93 +151,6 @@ local function with_change_at_cursor(operation)
   end
 end
 
---------------------------------------------------------------------------------
--- Editor buffer
---------------------------------------------------------------------------------
-
--- Open an editor buffer meant to capture user input
--- @param opts table with:
---   - content: string - initial content
---   - filetype: string - buffer filetype
---   - extra_help_text: string - extra help text shown at bottom
---   - on_submit: function(content: string) - callback with user content (without help lines)
---   - on_abort: function() - optional callback on abort
-local function open_editor_buffer(opts)
-  local buf = vim.api.nvim_create_buf(false, false)
-  local temp_file = vim.fn.tempname()
-
-  -- Set buffer options
-  vim.api.nvim_buf_set_name(buf, temp_file)
-  vim.bo[buf].buftype = ''
-  vim.bo[buf].bufhidden = 'wipe'
-  vim.bo[buf].swapfile = false
-  vim.bo[buf].filetype = opts.filetype or 'text'
-
-  -- Set content
-  local lines = vim.split(opts.content or "", "\n")
-  if opts.extra_help_text then
-    table.insert(lines, 1, opts.extra_help_text)
-  end
-  vim.list_extend(lines, {
-    "JJ: <C-c><C-c> - confirm",
-    "JJ: <C-c><C-k> - abort"
-  })
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
-
-  -- Open buffer in a split
-  vim.cmd('botright split')
-  local win = vim.api.nvim_get_current_win()
-  vim.api.nvim_win_set_buf(win, buf)
-  vim.api.nvim_win_set_height(win, math.floor(vim.o.lines * 0.4))
-  vim.api.nvim_win_set_cursor(win, { 1, 0 })
-
-  -- Submit and abort handlers
-  local function submit()
-    -- Makes it so the cursor remains at top after edit buffer close
-    vim.cmd.stopinsert()
-    local content = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-    vim.api.nvim_buf_delete(buf, { force = true })
-    if opts.on_submit then
-      -- Filter out lines starting with "JJ:"
-      local filtered_lines = u.remove(content, function(x) return x:match("^JJ:") end)
-      local user_content = table.concat(filtered_lines, "\n")
-      opts.on_submit(user_content)
-    end
-  end
-
-  local function abort()
-    -- Makes it so the cursor remains at top after edit buffer close
-    vim.cmd.stopinsert()
-    vim.api.nvim_buf_delete(buf, { force = true })
-    if opts.on_abort then
-      opts.on_abort()
-    else
-      vim.notify("Aborted", vim.log.levels.INFO)
-    end
-  end
-
-  -- Setup keymaps
-  local keymap_opts = function(desc)
-    return { desc = desc, buffer = buf, silent = true }
-  end
-
-  vim.keymap.set("n", "<C-c><C-k>", abort, keymap_opts("JJ: Abort"))
-  vim.keymap.set("i", "<C-c><C-k>", abort, keymap_opts("JJ: Abort"))
-  vim.keymap.set("n", "<C-c><C-c>", submit, keymap_opts("JJ: Submit"))
-  vim.keymap.set("i", "<C-c><C-c>", submit, keymap_opts("JJ: Submit"))
-
-  -- Cleanup temp file
-  vim.api.nvim_create_autocmd("BufWipeout", {
-    buffer = buf,
-    once = true,
-    callback = function() vim.fn.delete(temp_file) end
-  })
-
-  if opts.on_ready then
-    opts.on_ready(win, buf)
-  end
-end
-
 local function prompt_and_set_revset()
   vim.ui.input({
     prompt = "Custom revset (empty to reset): ",
@@ -276,7 +190,7 @@ end
 local function describe(change_id)
   jj.get_changes_by_ids({ change_id }, function(changes)
     local description = changes[1].description
-    open_editor_buffer({
+    capture_buffer.open({
       content = description,
       filetype = 'jjdescription',
       on_ready = function(_, _)
@@ -648,7 +562,7 @@ local function describe_and_squash_changes(source_ids, target_id)
       end
     end
 
-    open_editor_buffer({
+    capture_buffer.open({
       content = table.concat(change_descriptions, "\n"),
       filetype = 'jjdescription',
       extra_help_text = string.format(
