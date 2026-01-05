@@ -88,7 +88,7 @@ M.extract_change_id =  function(line)
 
   -- Pattern 3: For lines with branch names, extract the first word
   if not change_id then
-    change_id = clean_line:match "[│├└─╮╯]*%s*[◉○◆@]+%s+(%w+)"
+    change_id = clean_line:match "[│├└─╮╯]*%s*[◉○◆@x]+%s+(%w+)"
   end
 
   return change_id
