@@ -711,6 +711,7 @@ local function close_jj_window()
 
   M.jj_buffer = nil
   M.jj_window = nil
+  M.selected_changes = {}
 end
 
 local function run_in_jj_window(args, title, setup_keymaps_fn)
