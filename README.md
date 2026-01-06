@@ -91,19 +91,17 @@ https://github.com/user-attachments/assets/8cbf2ad0-86ac-435a-ad1a-38c245c3bdff
 ### Commands
 
 - `:JJ` or `:JJ log` - Open the interactive log view
-- `:JJ <command>` - Run any jj command (e.g., `:JJ status`, `:JJ diff`)
+- `:JJ <command>` - Run any jj command (e.g., `:JJ status`, `:JJ op log`)
 
 ### Log View Keybindings
 
-#### Navigation
-- `j` / `k` - Move down/up across changes
-- `q` - Close window
-- `<CR>` - Open diffviewer change under cursor
-
-#### Change Operations
+#### Basic operations
 
 | Key | Action | Description |
 |-----|--------|-------------|
+| `j` / `k` | Move down/up across changes | |
+| `q` | Close window | |
+| `<CR>` | Open diffviewer change under cursor | |
 | `R` | Refresh | Refresh the log view |
 | `l` | Set revset | Opens the log on a new custom revset |
 | `u` | Undo | Undo the last operation |
@@ -270,6 +268,15 @@ But you can achieve similar results by calling into the Lua API directly:
 local jj = require("jujutsu-nvim")
 vim.keymap.set("n", "<leader>j", jj.log, { desc = "JJ Log" })
 ```
+
+## Roadmap
+
+Here are the things I'd like to be adding soon. Please submit issues for any ideas or feature requests, I'd love to hear from you :).
+
+- [ ] Splitting changes interactively using [hunk.nvim](https://github.com/julienvincent/hunk.nvim) inside current Neovim instance
+- [ ] Squashing current hunk from any code file
+- [ ] 'U' to display the op log with the ability to undo specific operation using 'u'
+- [ ] Add a good public Lua API to build own flows more easily
 
 ## Development
 
