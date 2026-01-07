@@ -43,7 +43,7 @@ M.show_floating_options = function(opts)
     lines = lines,
     highlights = highlights,
     help_text = "    <Esc> or q to cancel",
-    on_close = opts.on_cancel,
+    on_cancel = opts.on_cancel,
   })
 
   -- Add option keymaps after popup is created

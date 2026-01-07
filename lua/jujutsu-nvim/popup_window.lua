@@ -14,7 +14,7 @@ M.create = function(opts)
   local highlights = opts.highlights or {}
   local title = opts.title or " JJ "
   local position = opts.position or "center"
-  local on_close = opts.on_close
+  local on_cancel = opts.on_cancel
   local help_text = opts.help_text or "    <Esc> or q to close"
 
   -- Add help text at the bottom
@@ -86,8 +86,15 @@ M.create = function(opts)
   -- For now, also move cursor to last line (empty line) to keep it out of sight
   vim.api.nvim_win_set_cursor(win, { #lines, 0 })
 
+  -- Track whether the window was closed programmatically
+  -- This is needed to distinguish between a command closing the window,
+  -- or the window losing focus. In cases the window lost focus we need to
+  -- call the on_cancel handler.
+  local closed_programmatically = false
+
   -- Cleanup function
   local function close()
+    closed_programmatically = true
     if vim.api.nvim_win_is_valid(win) then
       vim.api.nvim_win_close(win, true)
     end
@@ -95,21 +102,29 @@ M.create = function(opts)
     vim.o.guicursor = original_guicursor
     vim.api.nvim_set_hl(0, 'Cursor', original_cursor_hl)
     vim.api.nvim_set_hl(0, 'lCursor', original_lcursor_hl)
+  end
 
-    if on_close then
-      on_close()
+  local function cancel()
+    close()
+    if on_cancel then
+      on_cancel()
     end
   end
 
   -- Default keybindings to close
-  vim.keymap.set("n", "q", close, { buffer = buf, silent = true })
-  vim.keymap.set("n", "<Esc>", close, { buffer = buf, silent = true })
+  vim.keymap.set("n", "q", cancel, { buffer = buf, silent = true })
+  vim.keymap.set("n", "<Esc>", cancel, { buffer = buf, silent = true })
 
   -- Auto-close on buffer leave (when focus moves away)
+  -- Only trigger cancel if the window wasn't closed programmatically
   vim.api.nvim_create_autocmd("BufLeave", {
     buffer = buf,
     once = true,
-    callback = close
+    callback = function()
+      if not closed_programmatically then
+        cancel()
+      end
+    end
   })
 
   return {
