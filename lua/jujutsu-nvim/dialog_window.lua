@@ -30,31 +30,29 @@ M.show_floating_options = function(opts)
     table.insert(lines, line)
     -- Track position of key for highlighting (accounting for padding)
     local line_idx = #lines - 1  -- 0-based index
-    table.insert(highlights, { 
-      line = line_idx, 
-      col_start = 4, 
+    table.insert(highlights, {
+      line = line_idx,
+      col_start = 4,
       col_end = 4 + #option.key,
       hl_group = "JJPromptKey"
     })
   end
 
-  -- Build extra keymaps for option selection
-  local extra_keymaps = {}
-  for _, option in pairs(options) do
-    extra_keymaps[option.key] = function()
-      popup.close()
-      opts.on_select(option)
-    end
-  end
-
-  -- Create popup window
+  -- Create popup window first
   local popup = popup_window.create({
     lines = lines,
     highlights = highlights,
     help_text = "    <Esc> or q to cancel",
     on_close = opts.on_cancel,
-    extra_keymaps = extra_keymaps,
   })
+
+  -- Add option keymaps after popup is created
+  for _, option in pairs(options) do
+    vim.keymap.set('n', option.key, function()
+      popup.close()
+      opts.on_select(option)
+    end, { buffer = popup.buf, silent = true })
+  end
 end
 
 -- Prompt for yes/no confirmation

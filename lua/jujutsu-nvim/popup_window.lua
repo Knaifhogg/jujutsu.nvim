@@ -7,7 +7,6 @@ local M = {}
 --   - title: string - window title (default: " JJ ")
 --   - position: string - "center" or "bottom_right" (default: "center")
 --   - on_close: function - callback when window closes (optional)
---   - extra_keymaps: table - additional keymaps like { key = function() end } (optional)
 --   - help_text: string - help text to show at bottom (default: "<Esc> or q to close")
 -- @return table with { win, buf, close } where close() is the cleanup function
 M.create = function(opts)
@@ -16,7 +15,6 @@ M.create = function(opts)
   local title = opts.title or " JJ "
   local position = opts.position or "center"
   local on_close = opts.on_close
-  local extra_keymaps = opts.extra_keymaps or {}
   local help_text = opts.help_text or "    <Esc> or q to close"
 
   -- Add help text at the bottom
@@ -97,7 +95,7 @@ M.create = function(opts)
     vim.o.guicursor = original_guicursor
     vim.api.nvim_set_hl(0, 'Cursor', original_cursor_hl)
     vim.api.nvim_set_hl(0, 'lCursor', original_lcursor_hl)
-    
+
     if on_close then
       on_close()
     end
@@ -106,11 +104,6 @@ M.create = function(opts)
   -- Default keybindings to close
   vim.keymap.set("n", "q", close, { buffer = buf, silent = true })
   vim.keymap.set("n", "<Esc>", close, { buffer = buf, silent = true })
-
-  -- Add extra keymaps
-  for key, handler in pairs(extra_keymaps) do
-    vim.keymap.set("n", key, handler, { buffer = buf, silent = true })
-  end
 
   -- Auto-close on buffer leave (when focus moves away)
   vim.api.nvim_create_autocmd("BufLeave", {
