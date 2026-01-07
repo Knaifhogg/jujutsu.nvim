@@ -198,18 +198,21 @@ M.rename_bookmark = function(old_name, new_name, on_success)
   )
 end
 
-M.pull_bookmark = function(bookmark_name, on_success)
-  -- First fetch from remote
+M.git_fetch = function(on_success)
   run_jj_command(
     { "jj", "git", "fetch" },
-    function()
-      -- Then set the bookmark to point to the remote version
-      run_jj_command(
-        { "jj", "bookmark", "set", bookmark_name, "-r", bookmark_name .. "@origin" },
-        on_success
-      )
-    end
+    on_success
   )
+end
+
+M.pull_bookmark = function(bookmark_name, on_success)
+  M.git_fetch(function()
+    -- Then set the bookmark to point to the remote version
+    run_jj_command(
+      { "jj", "bookmark", "set", bookmark_name, "-r", bookmark_name .. "@origin" },
+      on_success
+    )
+  end)
 end
 
 --------------------------------------------------------------------------------

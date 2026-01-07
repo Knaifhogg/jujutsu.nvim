@@ -147,6 +147,8 @@ Press `?` in the log view to see all available keybindings organized by category
 | `B` | Bookmark operations menu | More bookmark options, like delete and rename |
 | `p` | Push bookmarks | Push the change (and its bookmarks) to remote |
 | `P` | Push and create bookmarks | Push the change and create bookmarks on remote if they don't exist |
+| f | Fetch from remote | Runs 'jj git fetch' |
+| F | Pull | Runs 'jj git fetch' followed by moving local bookmark at cursor to origin  |
 
 #### Multi-Selection
 

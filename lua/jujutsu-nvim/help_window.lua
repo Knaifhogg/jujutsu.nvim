@@ -39,6 +39,8 @@ local action_help_info = {
   bookmark_menu = { group = "bookmarks", order = 2 },
   push_bookmarks = { group = "bookmarks", order = 3 },
   push_bookmarks_and_create = { group = "bookmarks", order = 4 },
+  git_fetch = { group = "bookmarks", order = 5 },
+  pull_bookmark = { group = "bookmarks", order = 6 },
 
   toggle_change = { group = "multi_selection", order = 1 },
   clear_selections = { group = "multi_selection", order = 2 },

@@ -54,6 +54,8 @@ local default_config = {
     B = { cmd = "bookmark_menu", desc = "Bookmark operations menu" },
     p = { cmd = "push_bookmarks", desc = "Push bookmarks" },
     P = { cmd = "push_bookmarks_and_create", desc = "Push and create bookmarks" },
+    f = { cmd = "git_fetch", desc = "Fetch from remote" },
+    F = { cmd = "pull_bookmark", desc = "Pull" },
     m = { cmd = "toggle_change", desc = "Toggle selection" },
     c = { cmd = "clear_selections", desc = "Clear all selections" },
   }
@@ -321,7 +323,6 @@ local function bookmark_menu(change_id)
     local options = {
       { key = 'd', label = 'Delete bookmark', value = 'delete' },
       { key = 'r', label = 'Rename bookmark', value = 'rename' },
-      { key = 'p', label = 'Pull bookmark from remote', value = 'pull' },
     }
 
     dialog_window.show_floating_options({
@@ -375,22 +376,6 @@ local function bookmark_menu(change_id)
               end)
             end)
           end)
-        elseif option.value == 'pull' then
-          -- Select which bookmark to pull
-          vim.ui.select(bookmarks, {
-            prompt = "Pull bookmark:",
-            format_item = function(item) return item end
-          }, function(bookmark)
-            if not bookmark then
-              vim.notify("Pull cancelled", vim.log.levels.INFO)
-              return
-            end
-
-            jj.pull_bookmark(bookmark, function()
-              vim.notify("Pulled bookmark '" .. bookmark .. "' from remote", vim.log.levels.INFO)
-              M.log()
-            end)
-          end)
         end
       end,
       on_cancel = function()
@@ -427,6 +412,39 @@ local function push_bookmarks(opts)
       )
     end)
   end
+end
+
+M.git_fetch = function()
+  jj.git_fetch(function()
+    vim.notify("Fetched from remote", vim.log.levels.INFO)
+    M.log()
+  end)
+end
+
+M.pull_bookmark = function()
+  M.with_change_at_cursor(function(change_id)
+    jj.get_bookmarks_for_change(change_id, function(bookmarks)
+      if #bookmarks == 0 then
+        vim.notify("No bookmarks on change " .. change_id, vim.log.levels.WARN)
+        return
+      end
+
+      vim.ui.select(bookmarks, {
+        prompt = "Pull bookmark:",
+        format_item = function(item) return item end
+      }, function(bookmark)
+        if not bookmark then
+          vim.notify("Pull cancelled", vim.log.levels.INFO)
+          return
+        end
+
+        jj.pull_bookmark(bookmark, function()
+          vim.notify("Pulled bookmark '" .. bookmark .. "' from remote", vim.log.levels.INFO)
+          M.log()
+        end)
+      end)
+    end)
+  end)
 end
 
 --------------------------------------------------------------------------------
@@ -759,6 +777,8 @@ local actions = {
   ["bookmark_menu"] = function() M.with_change_at_cursor(bookmark_menu) end,
   ["push_bookmarks"] = function() push_bookmarks({}) end,
   ["push_bookmarks_and_create"] = function() push_bookmarks({ create = true }) end,
+  ["git_fetch"] = M.git_fetch,
+  ["pull_bookmark"] = M.pull_bookmark,
   ["toggle_change"] = toggle_selection_at_cursor,
   ["clear_selections"] = function()
     clear_selections()
