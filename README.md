@@ -214,7 +214,7 @@ only necessary if you want to change the default behavior.
 require("jujutsu-nvim").setup({
   -- Diff viewer: "difftastic", "diffview", "none"
   diff_preset = "difftastic",  -- default
-  
+
   -- Help window position: "center", "bottom_right"
   help_position = "center",  -- default
 })
@@ -269,9 +269,6 @@ require("jujutsu-nvim").setup({
       end,
       desc = "Custom diff"
     },
-
-    -- Legacy string format still supported
-    ["<CR>"] = "open_diff",
   }
 })
 ```

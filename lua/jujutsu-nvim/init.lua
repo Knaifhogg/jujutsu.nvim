@@ -786,21 +786,9 @@ function M.log(args)
   run_in_jj_window(log_args, "JJ Log", function(buf)
     -- Bind keymaps
     for key, binding in pairs(M.config.keymap) do
-      -- Support both old format (string) and new format (table)
-      local cmd, desc
-      if type(binding) == "string" then
-        -- Old format: key = "action_name"
-        cmd = actions[binding] or binding
-        desc = "JJ: " .. binding
-      else
-        -- New format: key = { cmd = "action_name", desc = "...", display_group = "..." }
-        cmd = actions[binding.cmd] or binding.cmd
-        desc = "JJ: " .. binding.desc
-      end
-
       vim.keymap.set(
-        "n", key, cmd,
-        { buffer = buf, silent = true, nowait = true, desc = desc }
+        "n", key, actions[binding.cmd] or binding.cmd,
+        { buffer = buf, silent = true, nowait = true, desc = "JJ: " .. binding.desc }
       )
     end
   end)
