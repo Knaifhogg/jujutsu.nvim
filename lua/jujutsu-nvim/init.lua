@@ -67,7 +67,6 @@ M.config = vim.deepcopy(default_config)
 -- Built-in diff viewer implementations
 local diff_presets = {
   difftastic = function(changes)
-    vim.cmd("tabnew")
     local change_ids = vim.tbl_map(function(c)
       return c.change_id end,
       changes
