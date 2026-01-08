@@ -14,12 +14,14 @@ local help_window = require("jujutsu-nvim.help_window")
 
 local M = {}
 
--- Window and buffer tracking
-M.jj_window = nil
-M.jj_buffer = nil
+local default_state = {
+  log_window = nil,
+  log_buffer = nil,
+  custom_revset = nil,
+  selected_changes = {},
+}
 
--- Custom revset for log view
-M.custom_revset = nil
+M.state = default_state
 
 -- Highlight group for jj log change lines
 vim.api.nvim_set_hl(0, "JJLogChange", { link = "CursorLine" })
@@ -107,33 +109,30 @@ end
 -- Multi Selection
 --------------------------------------------------------------------------------
 
--- Selection state (set of change IDs)
-M.selected_changes = {}
-
 local ns_id = vim.api.nvim_create_namespace("jj_selections")
 
 -- Clear all selections
 local function clear_selections()
-  M.selected_changes = {}
-  if M.jj_buffer and vim.api.nvim_buf_is_valid(M.jj_buffer) then
+  M.state.selected_changes = {}
+  if M.state.log_buffer and vim.api.nvim_buf_is_valid(M.state.log_buffer) then
     -- Clear all extmarks for selections
-    vim.api.nvim_buf_clear_namespace(M.jj_buffer, ns_id, 0, -1)
+    vim.api.nvim_buf_clear_namespace(M.state.log_buffer, ns_id, 0, -1)
   end
 end
 
 -- Toggle selection for a change
 local function toggle_selection(change_id)
-  if M.selected_changes[change_id] then
-    M.selected_changes[change_id] = nil
+  if M.state.selected_changes[change_id] then
+    M.state.selected_changes[change_id] = nil
   else
-    M.selected_changes[change_id] = true
+    M.state.selected_changes[change_id] = true
   end
 end
 
 -- Get list of selected change IDs
 local function get_selected_ids()
   local ids = {}
-  for id, _ in pairs(M.selected_changes) do
+  for id, _ in pairs(M.state.selected_changes) do
     table.insert(ids, id)
   end
   return ids
@@ -457,19 +456,19 @@ local function select_change(opts, cb)
     vim.log.levels.INFO
   )
 
-  local keymap_opts = { buffer = M.jj_buffer, silent = true }
+  local keymap_opts = { buffer = M.state.log_buffer, silent = true }
 
   vim.keymap.set("n", "<CR>", function()
     M.with_change_at_cursor(function(change_id)
-      vim.keymap.del("n", "<CR>", { buffer = M.jj_buffer })
-      vim.keymap.del("n", "<Esc>", { buffer = M.jj_buffer })
+      vim.keymap.del("n", "<CR>", { buffer = M.state.log_buffer })
+      vim.keymap.del("n", "<Esc>", { buffer = M.state.log_buffer })
       cb(change_id)
     end)
   end, keymap_opts)
 
   vim.keymap.set("n", "<Esc>", function()
-    vim.keymap.del("n", "<CR>", { buffer = M.jj_buffer })
-    vim.keymap.del("n", "<Esc>", { buffer = M.jj_buffer })
+    vim.keymap.del("n", "<CR>", { buffer = M.state.log_buffer })
+    vim.keymap.del("n", "<Esc>", { buffer = M.state.log_buffer })
     vim.notify("Selection cancelled", vim.log.levels.INFO)
   end, keymap_opts)
 end
@@ -637,10 +636,10 @@ end
 -- Navigate to next line with a change ID
 local function jump_to_next_change()
   local current_line = vim.api.nvim_win_get_cursor(0)[1]
-  local total_lines = vim.api.nvim_buf_line_count(M.jj_buffer)
+  local total_lines = vim.api.nvim_buf_line_count(M.state.log_buffer)
 
   for line_num = current_line + 1, total_lines do
-    local line = vim.api.nvim_buf_get_lines(M.jj_buffer, line_num - 1, line_num, false)[1]
+    local line = vim.api.nvim_buf_get_lines(M.state.log_buffer, line_num - 1, line_num, false)[1]
     if line and jj.extract_change_id(line) then
       vim.api.nvim_win_set_cursor(0, { line_num, 0 })
       return
@@ -653,7 +652,7 @@ local function jump_to_prev_change()
   local current_line = vim.api.nvim_win_get_cursor(0)[1]
 
   for line_num = current_line - 1, 1, -1 do
-    local line = vim.api.nvim_buf_get_lines(M.jj_buffer, line_num - 1, line_num, false)[1]
+    local line = vim.api.nvim_buf_get_lines(M.state.log_buffer, line_num - 1, line_num, false)[1]
     if line and jj.extract_change_id(line) then
       vim.api.nvim_win_set_cursor(0, { line_num, 0 })
       return
@@ -663,20 +662,20 @@ end
 
 -- Update visual indicators for selections
 local function update_selection_display()
-  vim.api.nvim_buf_clear_namespace(M.jj_buffer, ns_id, 0, -1)
+  vim.api.nvim_buf_clear_namespace(M.state.log_buffer, ns_id, 0, -1)
 
   -- Add visual indicators for each selected change
-  local lines = vim.api.nvim_buf_get_lines(M.jj_buffer, 0, -1, false)
+  local lines = vim.api.nvim_buf_get_lines(M.state.log_buffer, 0, -1, false)
   for i, line in ipairs(lines) do
     local change_id = jj.extract_change_id(line)
-    if change_id and M.selected_changes[change_id] then
+    if change_id and M.state.selected_changes[change_id] then
       -- Add checkmark at the start of the line
-      vim.api.nvim_buf_set_extmark(M.jj_buffer, ns_id, i - 1, 0, {
+      vim.api.nvim_buf_set_extmark(M.state.log_buffer, ns_id, i - 1, 0, {
         virt_text = {{ "✓ ", "DiffAdd" }},
         virt_text_pos = "overlay",
       })
       -- Highlight the line
-      vim.api.nvim_buf_add_highlight(M.jj_buffer, ns_id, "Visual", i - 1, 0, -1)
+      vim.api.nvim_buf_add_highlight(M.state.log_buffer, ns_id, "Visual", i - 1, 0, -1)
     end
   end
 
@@ -710,12 +709,12 @@ local terminal_buffer = require("jujutsu-nvim.terminal_buffer")
 -- Cleanup jj window and buffer
 local function close_jj_window()
   -- Close window first, which will trigger buffer cleanup if bufhidden=wipe
-  if M.jj_window and vim.api.nvim_win_is_valid(M.jj_window) then
-    vim.api.nvim_win_close(M.jj_window, true)
+  if M.state.log_window and vim.api.nvim_win_is_valid(M.state.log_window) then
+    vim.api.nvim_win_close(M.state.log_window, true)
   end
   -- Force delete buffer if it still exists (ensures terminal buffer is wiped)
-  if M.jj_buffer and vim.api.nvim_buf_is_valid(M.jj_buffer) then
-    vim.api.nvim_buf_delete(M.jj_buffer, { force = true })
+  if M.state.log_buffer and vim.api.nvim_buf_is_valid(M.state.log_buffer) then
+    vim.api.nvim_buf_delete(M.state.log_buffer, { force = true })
   end
 
   -- Clean up any orphaned JJ terminal buffers
@@ -730,24 +729,22 @@ local function close_jj_window()
     end
   end
 
-  M.jj_buffer = nil
-  M.jj_window = nil
-  M.selected_changes = {}
+  M.state = default_state
 end
 
 local function run_in_jj_window(args, title, setup_keymaps_fn)
   terminal_buffer.run_command_in_new_terminal_window(args, {
-    buf = M.jj_buffer,
-    window = M.jj_window,
+    buf = M.state.log_buffer,
+    window = M.state.log_window,
     title = title,
     on_ready = function(window, buffer)
-      M.jj_buffer = buffer
-      M.jj_window = window
+      M.state.log_buffer = buffer
+      M.state.log_window = window
       setup_keymaps_fn(buffer, window)
     end,
     on_close = function()
-      M.jj_window = nil
-      M.jj_buffer = nil
+      M.state.log_window = nil
+      M.state.log_buffer = nil
     end
   })
 end
@@ -796,9 +793,9 @@ function M.log(args)
   local log_args = { "log" }
 
   -- Add custom revset if set
-  if M.custom_revset then
+  if M.state.custom_revset then
     table.insert(log_args, "-r")
-    table.insert(log_args, M.custom_revset)
+    table.insert(log_args, M.state.custom_revset)
   end
 
   vim.list_extend(log_args, args)
@@ -831,10 +828,10 @@ end
 
 M.set_custom_revset = function(revset)
   if u.is_blank(revset) then
-    M.custom_revset = nil
+    M.state.custom_revset = nil
     vim.notify("Revset reset to default", vim.log.levels.INFO)
   else
-    M.custom_revset = revset
+    M.state.custom_revset = revset
     vim.notify("Revset set to: " .. revset, vim.log.levels.INFO)
   end
   clear_selections()
