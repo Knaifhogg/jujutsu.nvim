@@ -14,4 +14,12 @@ M.is_blank = function(str)
   return vim.trim(str or "") == ""
 end
 
+M.keys = function(t)
+  local keys = {}
+  for k, _ in pairs(t) do
+    table.insert(keys, k)
+  end
+  return keys
+end
+
 return M

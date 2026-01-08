@@ -1,7 +1,7 @@
--- Custom jj integration for Neovim
+-- A JJ frontend for Neovim
 --
--- Provides a simple interface for running jj commands and displaying results
--- in Neovim buffers with custom keymaps and highlighting.
+-- Provides an interactive interface for running jj commands and displaying
+-- results in Neovim buffers with custom keymaps and highlighting.
 --
 -- Usage:
 --   :JJ log           - Open interactive log view
@@ -39,7 +39,6 @@ vim.api.nvim_set_hl(0, "JJLogChange", { link = "CursorLine" })
 --- @field help_position "center"|"bottom_right" Help window position
 --- @field keymap table<string, KeymapBinding> Keymap configuration
 
--- Default configuration
 local default_config = {
   -- Diff viewer preset options: "difftastic", "diffview" or "none"
   diff_preset = "difftastic",
@@ -72,10 +71,8 @@ local default_config = {
   }
 }
 
--- Current configuration (merged with user config)
 M.config = vim.deepcopy(default_config)
 
--- Built-in diff viewer implementations
 local diff_presets = {
   difftastic = function(changes)
     local change_ids = vim.tbl_map(function(c)
@@ -98,7 +95,6 @@ local diff_presets = {
   end,
 }
 
--- Get the configured diff viewer function
 local function get_diff_viewer()
   local preset = M.config.diff_preset
 
@@ -120,7 +116,6 @@ end
 
 local ns_id = vim.api.nvim_create_namespace("jj_selections")
 
--- Clear all selections
 local function clear_selections()
   M.state.selected_changes = {}
   if M.state.log_buffer and vim.api.nvim_buf_is_valid(M.state.log_buffer) then
@@ -129,7 +124,6 @@ local function clear_selections()
   end
 end
 
--- Toggle selection for a change
 local function toggle_selection(change_id)
   if M.state.selected_changes[change_id] then
     M.state.selected_changes[change_id] = nil
@@ -138,13 +132,8 @@ local function toggle_selection(change_id)
   end
 end
 
--- Get list of selected change IDs
 local function get_selected_ids()
-  local ids = {}
-  for id, _ in pairs(M.state.selected_changes) do
-    table.insert(ids, id)
-  end
-  return ids
+  return u.keys(M.state.selected_changes)
 end
 
 --------------------------------------------------------------------------------
@@ -179,7 +168,6 @@ local function new_change()
       clear_selections()
       M.log()
     end)
-
   else
     M.with_change_at_cursor(function(change_id)
       jj.new_change(change_id, function()
